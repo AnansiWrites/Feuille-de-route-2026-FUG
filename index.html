@@ -737,6 +737,12 @@ p{margin:0}
 .pubchips{display:flex;flex-wrap:wrap;gap:8px}
 .pubchips .chip{background:var(--mint);color:var(--green-ink);white-space:normal}
 .pubbig{font-size:40px;font-weight:800;color:var(--green-ink);line-height:1;font-variant-numeric:tabular-nums}
+.covhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.covhead h3{font-size:18px;font-weight:800}
+.covtab tbody th{min-width:300px}
+.covtab td{min-width:300px}
+.covnotes h3{font-size:16px;font-weight:800;margin-bottom:10px}
+.covnotes ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--ink)}
 /* ---------- Responsive ---------- */
 @media (max-width:1100px){
   .oct-grid{grid-template-columns:minmax(0,1fr)}
@@ -1196,13 +1202,16 @@ p{margin:0}
       </div></div>
       <div class="panel eco-panel" id="ecopanel" aria-live="polite"></div>
     </div>
-    <div class="matrix-wrap">
-      <table class="matrix ecomx" id="ecomx">
-        <thead><tr><th scope="col" style="text-align:left">Rubrique du site</th><th scope="col">J1 Collecte</th><th scope="col">J2 Fondations</th><th scope="col">J3 Contenus</th><th scope="col">J9 Pilotage</th><th scope="col">J10 Entreprises</th><th scope="col">J11 Newsletter</th><th scope="col">J12 Alumni</th><th scope="col">CA mécénat</th><th scope="col">Indicateurs servis</th></tr></thead>
-        <tbody></tbody>
-      </table>
+    <div class="covhead">
+      <h3>Couverture des engagements ADUG par le site</h3>
+      <div class="scsum" id="covsum"></div>
     </div>
-    <p class="note">Toutes les pages portent la mention France 2030. La rubrique Soutenir est la pièce maîtresse : c'est elle qui transforme la visibilité en dons, premier indicateur attendu en fin de phase 1.</p>
+    <div class="matrix-wrap"><table class="matrix sctab covtab" id="covtab"></table></div>
+    <div class="panel covnotes">
+      <h3>Points qui relèvent d'une organisation hors du site</h3>
+      <ul id="covnotes"></ul>
+    </div>
+    <p class="note">Toutes les pages portent la mention France 2030. Statuts établis à partir du dossier ADUG ; formulations et caractère commun des jalons à confirmer dans la convention signée.</p>
   </div>
 </section>
 
@@ -1702,12 +1711,7 @@ var DOORS=[
 var SPINE={t:"Le back-office de la Fondation",por:"Administré par l'équipe de la Fondation",pro:["Chargée de marketing et communication","Responsable mécénat","Responsable du projet, gestion financière (lecture des indicateurs)"],
   act:["Une fiche par donateur, entreprise et alumni","Des envois coordonnés, sans sur-sollicitation","Un tableau de bord qui remonte les indicateurs ADUG"],
   ind:["J1 · suivi des donateurs","J9 · pilotage trimestriel","J10","J11","Reporting ANR"],mis:"Pilotage, mémoire de la relation, conformité"};
-var ECOMX=[
-  {t:"Soutenir un projet",m:[1,1,1,0,0,0,0,1],k:"don"},
-  {t:"Mécénat d'entreprise",m:[1,1,0,0,1,1,0,1],k:"ent"},
-  {t:"Club des Alumni",m:[1,0,1,0,0,0,1,0],k:"etu"},
-  {t:"Back-office de la Fondation",m:[1,1,0,1,1,1,1,0],k:"spine"}
-];
+var ECOMX=[];
 function ecoShow(d,key){
   $$("#doors .door").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.k===key))});
   $("#spine").setAttribute("aria-pressed",String(key==="spine"));
@@ -1842,6 +1846,7 @@ var LINES=[
  {id:"canva",cat:"out",l:"Création graphique et banque d'images",sol:"Canva Pro",st:"ret",lo:110,hi:250,unit:true,q:2,rec:true,y:2026,j:"J3",b:"Par licence et par an"},
  {id:"notion",cat:"out",l:"Base documentaire et cartographie des événements",sol:"Notion Plus",st:"ret",lo:100,hi:120,unit:true,q:2,rec:true,y:2026,j:"J9",b:"Par membre et par an"},
  {id:"monday",cat:"out",l:"Suivi des tâches de l'équipe",sol:"Monday",st:"ret",lo:324,hi:432,rec:true,y:2026,j:"J9",b:"3 sièges minimum, par an"},
+ {id:"claude",cat:"out",l:"Assistant de rédaction IA",sol:"Claude Pro",st:"ret",lo:210,hi:250,unit:true,q:1,rec:true,y:2026,j:"",b:"Par licence et par an"},
  {id:"photos",cat:"cont",l:"Reportage photo au campus de Troubiran, Cayenne",d:"1 à 2 jours, droits cédés",st:"con",lo:800,hi:2500,y:2026,mov:true,j:"J1 J3"},
  {id:"videos",cat:"cont",l:"Trois vidéos courtes de promotion",d:"Tournage mutualisé",st:"con",lo:3500,hi:8000,y:2027,mov:true,j:"J1 J3"},
  {id:"broch",cat:"print",l:"Brochure FUG",d:"Petite série",st:"con",lo:250,hi:700,y:2026,j:"J1 J10"},
@@ -1907,6 +1912,40 @@ $$("#scen button").forEach(function(b){b.addEventListener("click",function(){SIM
 $("#envin").addEventListener("change",function(){SIM.env=Math.max(0,+this.value||0);store("fug-seule-sim",SIM);simCalc()});
 $("#simreset").addEventListener("click",function(){SIM=JSON.parse(JSON.stringify(SDEF));store("fug-seule-sim",SIM);simCalc()});
 simCalc();
+
+/* ---------- Couverture ---------- */
+(function(){
+  var L={ok:["Couvert","st-ok"],part:["Partiel","st-part"],no:["Non couvert","st-no"],plan:["Prévu en 2027","st-unk"]};
+  var R=[
+   ["J1 · Collecte : 3 grands donateurs, 5 entreprises, 50 défiscalisations","ok","Pages projets et don en ligne avec reçus fiscaux"],
+   ["J2 · Réponses aux appels à projets des fondations","ok","Pages projets et suivi des mécènes dans le back-office"],
+   ["J3 · Magazine, conférences, radio","ok","Diffusion des contenus sur le site"],
+   ["J9 · Suivi trimestriel du projet (commun FUG-DFPU)","part","Indicateurs de la Fondation uniquement"],
+   ["J10 · Entreprises visitées (commun FUG-DFPU)","part","Entreprises rencontrées par la Fondation uniquement"],
+   ["J11 · 3 newsletters entreprises par an (commun FUG-DFPU)","part","Newsletter de la Fondation uniquement"],
+   ["J12 · Club des Alumni, +10 % par an (commun FUG-DFPU)","ok","Adhésion en ligne au Club des Alumni"],
+   ["DFPU · Création d'un réseau d'étudiants","no","Hors du périmètre du site"],
+   ["Outil prévu : site et dons en ligne","ok",""],
+   ["Outil prévu : logiciel de gestion de la relation (CRM)","part","Utilisé par la Fondation uniquement"],
+   ["Outil prévu : plateforme de financement participatif","plan","Enrichissement prévu en 2027"],
+   ["Engagement : mettre en œuvre tous les moyens prévus au dossier","part","Moyens du volet Mécénat uniquement"],
+   ["Deux postes de communication coordonnés","no","Coordination non assurée par le site"]
+  ];
+  var c={ok:0,part:0,no:0,plan:0};
+  var h='<thead><tr><th scope="col">Exigence ADUG</th><th scope="col">Site de la Fondation</th></tr></thead><tbody>';
+  R.forEach(function(r){c[r[1]]++;h+='<tr><th scope="row">'+r[0]+'</th><td><span class="status '+L[r[1]][1]+'">'+L[r[1]][0]+'</span>'+(r[2]?'<small>'+r[2]+'</small>':'')+'</td></tr>'});
+  var sum=c.ok+" couverts, "+c.part+" partiels, "+c.no+" non couverts, "+c.plan+" prévu en 2027";
+  h+='</tbody><tfoot><tr><th scope="row">Synthèse</th><td>'+sum+'</td></tr></tfoot>';
+  $("#covtab").innerHTML=h;
+  var PL={ok:"couverts",part:"partiels",no:"non couverts",plan:"prévu en 2027"},SG={ok:"couvert",part:"partiel",no:"non couvert",plan:"prévu en 2027"};
+  $("#covsum").innerHTML=["ok","part","no","plan"].map(function(k){return c[k]?'<span class="status '+L[k][1]+'">'+c[k]+' '+(c[k]>1?PL[k]:SG[k])+'</span>':''}).join("");
+  $("#covnotes").innerHTML=[
+   "Les jalons 9, 10 et 11 sont communs à la FUG et à la DFPU : leur suivi complet suppose une coordination avec la DFPU.",
+   "À partir de l'année 4, le critère de l'abondement porte sur le chiffre d'affaires des deux volets ; le site agit sur le volet Mécénat.",
+   "La création d'un réseau d'étudiants relève du volet de la DFPU.",
+   "Le dossier prévoit deux postes de communication ; leur coordination reste à organiser."
+  ].map(function(x){return "<li>"+x+"</li>"}).join("");
+})();
 
 /* ---------- Moyens : flip cards ---------- */
 $$(".mflip").forEach(function(b){b.addEventListener("click",function(){b.classList.toggle("on")})});
